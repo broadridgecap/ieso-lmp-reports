@@ -2,15 +2,15 @@ name: IESO Excel Report Generator
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Run hourly at minute 0
-  workflow_dispatch:      # Allow manual runs from GitHub UI
+    - cron: '0 * * * *'  # Run hourly
+  workflow_dispatch:      # Allow manual trigger
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -22,13 +22,15 @@ jobs:
         run: |
           pip install pandas lxml openpyxl requests
 
-      - name: Run power.py script
+      - name: Run power.py
         run: python power.py
 
-      - name: Commit new Excel file
+      - name: Commit and push Excel files
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
           git add output/*.xlsx
-          git commit -m "Update IESO report from GitHub Actions"
-          git push
+          git commit -m "Update IESO report from GitHub Actions" || echo "No changes to commit"
+          git push https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
